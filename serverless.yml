@@ -42,7 +42,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: "5"
           WriteCapacityUnits: "5"
-        TableName: "users"
+        TableName: "users-${opt:stage}"
     DynamoDBIamPolicy:
       Type: AWS::IAM::Policy
       DependsOn: UsersDynamoDB
@@ -55,6 +55,6 @@ resources:
               Action:
                 - dynamodb:Scan
                 - dynamodb:UpdateItem
-              Resource: arn:aws:dynamodb:*:*:table/users
+              Resource: "arn:aws:dynamodb:*:*:table/users-${opt:stage}"
         Roles:
           - Ref: IamRoleLambdaExecution
