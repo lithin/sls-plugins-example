@@ -1,16 +1,26 @@
 'use strict';
 const AWS = require("aws-sdk");
 
-module.exports.getUsers = (event, context, callback) => {
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'get user',
-      input: event,
-    }),
+module.exports.getUsers = (_, context, callback) => {
+  AWS.config.update({
+    region: "eu-west-1",
+    apiVersions: {
+      dynamodb: '2012-08-10',
+    }
+  });
+  const dynamodb = new AWS.DynamoDB();
+
+  const params = {
+    TableName: 'users'
   };
 
-  callback(null, response);
+  dynamodb.scan(params, function(err, data) {
+    if (err) {
+      callback("Unable to get items. Error JSON: " + JSON.stringify(err));
+    } else {
+      callback(null, data);
+    }
+  });
 };
 
 module.exports.createUser = (event, context, callback) => {
@@ -21,7 +31,6 @@ module.exports.createUser = (event, context, callback) => {
     }
   });
   const dynamodb = new AWS.DynamoDB();
-  console.log(event);
 
   const params = {
     TableName: 'users',
@@ -39,7 +48,7 @@ module.exports.createUser = (event, context, callback) => {
     if (err) {
       callback("Unable to add item. Error JSON: " + JSON.stringify(err));
     } else {
-      callback(null, "Added item:", JSON.stringify(data));
+      callback(null, "Added item: " + JSON.stringify(data));
     }
   });
 };

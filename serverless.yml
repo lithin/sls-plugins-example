@@ -5,16 +5,6 @@ provider:
   runtime: nodejs4.3
   region: eu-west-1
 
-iamRoleStatements:
-  - Effect: "Allow"
-    Action:
-      - "dynamodb:*"
-    Resource:
-      Fn::Join:
-        - ""
-        - - "arn:aws:s3:::"
-          - "Ref" : "UsersDynamoDB"
-
 functions:
   get:
     handler: handler.getUsers
@@ -53,3 +43,18 @@ resources:
           ReadCapacityUnits: "5"
           WriteCapacityUnits: "5"
         TableName: "users"
+    DynamoDBIamPolicy:
+      Type: AWS::IAM::Policy
+      DependsOn: UsersDynamoDB
+      Properties:
+        PolicyName: lambda-dynamodb
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:UpdateItem
+              Resource: arn:aws:dynamodb:*:*:table/users
+        Roles:
+          - Ref: IamRoleLambdaExecution
