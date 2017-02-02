@@ -1,1 +1,2 @@
-.serverless/**/*
+.serverless
+node_modules

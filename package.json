@@ -1,0 +1,19 @@
+{
+  "name": "sls-plugin-workshop",
+  "version": "1.0.0",
+  "description": "Serverless plugin workshop",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lithin/sls-plugins-example.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lithin/sls-plugins-example/issues"
+  },
+  "homepage": "https://github.com/lithin/sls-plugins-example#readme"
+}
