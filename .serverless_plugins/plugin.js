@@ -1,72 +1,74 @@
 const aws = require('aws-sdk');
 
-const downloadData = (serverless, options) => {
-  const { Resources } = serverless.service.resources;
-  const { resource } = options;
-  console.log(options);
-  console.log('aws', Resources[resource].Properties.TableName);
-  // console.log('variables', serverless.variables);
-  // console.log('config', serverless.config);
-  return;
-
-  AWS.config.update({
+const getDynamoDB = serverless => {
+  aws.config.update({
     region: serverless.service.provider.region,
     apiVersions: {
       dynamodb: '2012-08-10',
     }
   });
-  const dynamodb = new AWS.DynamoDB();
+  return new aws.DynamoDB();
+}
+
+const getTableName = (serverless, options, isBackup = false) => {
+  const table = serverless.service.resources.Resources[options.resource].Properties.TableName;
+  if (!isBackup) return table;
+  return table.replace(options.stage, options.backup);
+}
+
+const downloadData = (serverless, options) => new Promise((resolve, reject) => {
+  const dynamodb = getDynamoDB(serverless);
 
   const params = {
-    tableName: serverless.tableName
+    TableName: getTableName(serverless, options),
   };
 
-  dynamodb.scan(params, (err, result) => {
-    if (err) {
-      serverless.cli('Oh no down! ', err);
+  dynamodb.scan(params, (error, result) => {
+    if (error) {
+      serverless.cli.log(`Error on downloading data! ${JSON.stringify(error)}`);
+      return reject(error);
     }
-    serverless.data = result;
-    serverless.cli('All good down! ', result);
+    serverless.variables.copyData = result;
+    serverless.cli.log(`Downloaded ${JSON.stringify(result.Items.length)} items`);
+    return resolve(result);
   });
-};
+});
 
-const uploadData = () => {
-  console.log('upload');
-  return;
-
-  AWS.config.update({
-    region: "eu-west-1",
-    apiVersions: {
-      dynamodb: '2012-08-10',
+const getPutPromise = (dynamodb, params, serverless) => new Promise((resolve, reject) => {
+  dynamodb.putItem(params, (error) => {
+    if (error) {
+      return reject(error);
     }
+    serverless.cli.log(`Uploaded: ${JSON.stringify(params)}`);
+    return resolve();
   });
-  const dynamodb = new AWS.DynamoDB();
+});
 
-  serverless.data.forEach(d => {
+const uploadData = (serverless, options) => new Promise((resolve, reject) => {
+  const dynamodb = getDynamoDB(serverless);
+  const uploads = [];
+
+  serverless.variables.copyData.Items.forEach(data => {
     const params = {
-      tableName: serverless.tableName,
-      Key: {
-       'Name': {
-         S: d.Name
-        },
-       'EmailAddress': {
-         S: d.EmailAddress
-        }
-      }
+      TableName: getTableName(serverless, options, true),
+      Item: data
     };
-    dynamodb.putItem(params, (err, result) => {
-      if (err) {
-        serverless.cli('Oh no up! ', err);
-      }
-      serverless.cli('All good up! ', result);
-    });
+    uploads.push(getPutPromise(dynamodb, params, serverless));
   });
-};
+
+  Promise.all(uploads).then(() => {
+    serverless.cli.log('Data uploaded successfully!');
+    resolve();
+  }).catch(error => {
+    serverless.cli.log(`Data upload failed: ${JSON.stringify(error)}`);
+    reject(error);
+  });
+});
 
 class MyPlugin {
   constructor(serverless, options) {
     this.commands = {
-      backup: {
+      'copy-data': {
         lifecycleEvents: [
           'downloadData',
           'uploadData'
@@ -92,8 +94,8 @@ class MyPlugin {
     };
 
     this.hooks = {
-      'backup:downloadData': downloadData.bind(null, serverless, options),
-      'backup:uploadData': uploadData.bind(null, serverless, options),
+      'copy-data:downloadData': downloadData.bind(null, serverless, options),
+      'copy-data:uploadData': uploadData.bind(null, serverless, options),
     };
   }
 }

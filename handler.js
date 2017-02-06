@@ -1,7 +1,7 @@
 'use strict';
 const AWS = require("aws-sdk");
 
-module.exports.getUsers = (_, context, callback) => {
+module.exports.getUsers = (event, context, callback) => {
   AWS.config.update({
     region: "eu-west-1",
     apiVersions: {
@@ -11,7 +11,7 @@ module.exports.getUsers = (_, context, callback) => {
   const dynamodb = new AWS.DynamoDB();
 
   const params = {
-    TableName: 'users'
+    TableName: event.table
   };
 
   dynamodb.scan(params, function(err, data) {
@@ -33,7 +33,7 @@ module.exports.createUser = (event, context, callback) => {
   const dynamodb = new AWS.DynamoDB();
 
   const params = {
-    TableName: 'users',
+    TableName: event.table,
     Key: {
      'Name': {
        S: event.name

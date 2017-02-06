@@ -4,6 +4,7 @@ provider:
   name: aws
   runtime: nodejs4.3
   region: eu-west-1
+  stage: dev
 
 functions:
   get:
@@ -18,6 +19,9 @@ functions:
       - http:
          path: users
          method: post
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
 
 plugins:
   - plugin
@@ -45,7 +49,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: "5"
           WriteCapacityUnits: "5"
-        TableName: "users-${opt:stage}"
+        TableName: "users-${self:custom.stage}"
     DynamoDBIamPolicy:
       Type: AWS::IAM::Policy
       DependsOn: UsersDynamoDB
@@ -58,6 +62,6 @@ resources:
               Action:
                 - dynamodb:Scan
                 - dynamodb:UpdateItem
-              Resource: "arn:aws:dynamodb:*:*:table/users-${opt:stage}"
+              Resource: "arn:aws:dynamodb:*:*:table/users-${self:custom.stage}"
         Roles:
           - Ref: IamRoleLambdaExecution
