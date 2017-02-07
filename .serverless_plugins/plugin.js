@@ -10,10 +10,10 @@ const getDynamoDB = serverless => {
   return new aws.DynamoDB();
 }
 
-const getTableName = (serverless, options, isBackup = false) => {
+const getTableName = (serverless, options, isUpload = false) => {
   const table = serverless.service.resources.Resources[options.resource].Properties.TableName;
-  if (!isBackup) return table;
-  return table.replace(options.stage, options.backup);
+  if (!isUpload) return table;
+  return table.replace(serverless.service.custom.stage, options['target-stage']);
 }
 
 const downloadData = (serverless, options) => new Promise((resolve, reject) => {
@@ -65,7 +65,7 @@ const uploadData = (serverless, options) => new Promise((resolve, reject) => {
   });
 });
 
-class MyPlugin {
+class CopyDataPlugin {
   constructor(serverless, options) {
     this.commands = {
       'copy-data': {
@@ -79,15 +79,10 @@ class MyPlugin {
             usage: 'Specify name of resource for your table',
             required: true
           },
-          stage: {
-            usage: 'Stage you want to get data from',
+          'target-stage': {
+            usage: 'Stage you want to upload data to',
             required: true,
-            shortcut: 's'
-          },
-          backup: {
-            usage: 'Stage you want to get data from',
-            required: true,
-            shortcut: 'b'
+            shortcut: 't'
           }
         }
       },
@@ -100,4 +95,4 @@ class MyPlugin {
   }
 }
 
-module.exports = MyPlugin;
+module.exports = CopyDataPlugin;
